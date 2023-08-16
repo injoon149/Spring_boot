@@ -25,6 +25,9 @@ public class MemberRepositoryTest {
     @Autowired
     MemberRepository memberRepository;
 
+    @Autowired
+    TeamRepository teamRepository;
+
     @PersistenceContext
     EntityManager em;
 
@@ -107,6 +110,45 @@ public class MemberRepositoryTest {
         Assertions.assertThat(page.isFirst()).isTrue(); //첫 번째 항목인지
         Assertions.assertThat(page.hasNext()).isTrue(); //다음 페이지가 있는지
 
+
+    }
+
+    @Test
+    public void bulkUpdate() throws Exception{
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 19));
+        memberRepository.save(new Member("member3", 20));
+        memberRepository.save(new Member("member4", 21));
+        memberRepository.save(new Member("member5", 40));
+
+        //when
+        int resultCount = memberRepository.bulkAgePlus(20);
+
+        Assertions.assertThat(resultCount).isEqualTo(3);
+
+    }
+
+    //N+1 문제 발생 : team의 데이터를 조회할 때마다 쿼리가 실행된다.
+    @Test
+    public void findMemberLazy() throws Exception{
+        //given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+        memberRepository.save(new Member("member1", 10, teamA));
+        memberRepository.save(new Member("member2", 20, teamB));
+        em.flush();
+        em.clear();
+
+        //when
+        List<Member> members = memberRepository.findAll();
+
+        //then
+        for(Member member : members){
+            member.getTeam().getName();
+        }
 
     }
 }
